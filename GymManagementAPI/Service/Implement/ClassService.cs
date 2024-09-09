@@ -2,6 +2,7 @@
 using GymManagementAPI.Entities;
 using GymManagementAPI.Service.Interface;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementAPI.Service.Implement
 {
@@ -16,20 +17,24 @@ namespace GymManagementAPI.Service.Implement
             _mapper = mapper;
         }
 
-        public List<ClassVM> GetAll()
+        public async Task<List<ClassVM>> GetAllAsync()
         {
-            var classes = _context.Classes.ToList();
+            var classesQuery = _context.Classes.AsQueryable();
+            var classes = await classesQuery.ToListAsync();
             return _mapper.Map<List<ClassVM>>(classes);
         }
 
-        public ClassVM GetById(int id)
+        public async Task<ClassVM> GetByIdAsync(int id)
         {
-            var classEntity = _context.Classes.Find(id);
-            if (classEntity == null) return null;
+            var classEntity = await _context.Classes.FindAsync(id);
+            if (classEntity == null)
+            {
+                return null;
+            }
             return _mapper.Map<ClassVM>(classEntity);
         }
 
-        public bool Create(CreateClassVM model)
+        public async Task<bool> CreateAsync(CreateClassVM model)
         {
             var classEntity = new Class
             {
@@ -41,30 +46,31 @@ namespace GymManagementAPI.Service.Implement
             };
 
             _context.Classes.Add(classEntity);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return true;
         }
 
-        public bool Update(int id, UpdateClassVM model)
+        public async Task<bool> UpdateAsync(int id, UpdateClassVM model)
         {
-            var classEntity = _context.Classes.Find(id);
+            var classEntity = await _context.Classes.FindAsync(id);
             if (classEntity == null) return false;
+
             classEntity.Name = model.Name;
             classEntity.TrainerId = model.TrainerId;
             classEntity.Schedule = model.Schedule;
             classEntity.MaxMembers = model.MaxMembers;
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return true;
         }
 
-        public bool Delete(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            var classEntity = _context.Classes.Find(id);
+            var classEntity = await _context.Classes.FindAsync(id);
             if (classEntity == null) return false;
 
             _context.Classes.Remove(classEntity);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return true;
         }
     }

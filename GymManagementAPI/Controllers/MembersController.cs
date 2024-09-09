@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using GymManagementAPI.Extensions;
 using GymManagementAPI.Service.Interface;
 using GymManagementAPI.ViewModel.MemberVM;
 using Microsoft.AspNetCore.Http;
@@ -8,80 +9,85 @@ namespace GymManagementAPI.Controllers
 {
     [Route("api/members")]
     [ApiController]
-    public class MembersController : ControllerBase
+    public class MemberController : ControllerBase
     {
         private readonly IMemberService _memberService;
-        private readonly IValidator<CreateMemberVM> _createValidator;
-        private readonly IValidator<UpdateMemberVM> _updateValidator;
+        private readonly IValidator<CreateMemberVM> _createMemberValidator;
+        private readonly IValidator<UpdateMemberVM> _updateMemberValidator;
 
-        public MembersController(IMemberService memberService, IValidator<CreateMemberVM> createValidator, IValidator<UpdateMemberVM> updateValidator)
+        public MemberController(IMemberService memberService, IValidator<CreateMemberVM> createMemberValidator, IValidator<UpdateMemberVM> updateMemberValidator)
         {
             _memberService = memberService;
-            _createValidator = createValidator;
-            _updateValidator = updateValidator;
-        }
-
-        private IActionResult FormatValidationResponse(FluentValidation.Results.ValidationResult validationResult)
-        {
-            var errors = validationResult.Errors.Select(error => new
-            {
-                propertyName = error.PropertyName,
-                errorMessage = error.ErrorMessage
-            });
-
-            return BadRequest(errors);
+            _createMemberValidator = createMemberValidator;
+            _updateMemberValidator = updateMemberValidator;
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> GetAllMembers()
         {
-            var members = _memberService.GetAll();
+            var members = await _memberService.GetAllAsync();
             return Ok(members);
         }
 
         [HttpGet("{id}")]
-        public IActionResult Get(int id)
+        public async Task<IActionResult> GetMemberById(int id)
         {
-            var member = _memberService.GetById(id);
+            var member = await _memberService.GetByIdAsync(id);
             if (member == null)
-                return NotFound("Thành viên không tồn tại");
-
+            {
+                return NotFound(new { message = "Thành viên không tồn tại." });
+            }
             return Ok(member);
         }
 
         [HttpPost]
-        public IActionResult Post([FromBody] CreateMemberVM model)
+        public async Task<IActionResult> CreateMember([FromBody] CreateMemberVM model)
         {
-            var validationResult = _createValidator.Validate(model);
+            var validationResult = _createMemberValidator.Validate(model);
+            var validationResponse = validationResult.ToValidationResponse();
             if (!validationResult.IsValid)
-                return FormatValidationResponse(validationResult);
+            {
+                return validationResponse;
+            }
 
-            _memberService.Create(model);
-            return StatusCode(201, "Thành viên đã được tạo thành công");
+            var result = await _memberService.CreateAsync(model);
+            if (result)
+            {
+                return Ok(new { message = "Thành viên được tạo thành công." });
+            }
+
+            return StatusCode(500, "Đã có lỗi xảy ra.");
         }
 
         [HttpPut("{id}")]
-        public IActionResult Put(int id, [FromBody] UpdateMemberVM model)
+        public async Task<IActionResult> UpdateMember(int id, [FromBody] UpdateMemberVM model)
         {
-            var validationResult = _updateValidator.Validate(model);
+            var validationResult = _updateMemberValidator.Validate(model);
+            var validationResponse = validationResult.ToValidationResponse();
             if (!validationResult.IsValid)
-                return FormatValidationResponse(validationResult);
+            {
+                return validationResponse;
+            }
 
-            var updated = _memberService.Update(id, model);
-            if (!updated)
-                return NotFound("Thành viên không tồn tại");
+            var result = await _memberService.UpdateAsync(id, model);
+            if (result)
+            {
+                return Ok(new { message = "Thành viên đã được cập nhật thành công." });
+            }
 
-            return Ok("Cập nhật thành công");
+            return NotFound(new { message = "Thành viên không tồn tại." });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> DeleteMember(int id)
         {
-            var deleted = _memberService.Delete(id);
-            if (!deleted)
-                return NotFound("Thành viên không tồn tại");
+            var result = await _memberService.DeleteAsync(id);
+            if (result)
+            {
+                return NoContent();
+            }
 
-            return NoContent();
+            return NotFound(new { message = "Thành viên không tồn tại." });
         }
     }
 }

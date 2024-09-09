@@ -4,84 +4,91 @@ using GymManagementAPI.Service.Implement;
 using GymManagementAPI.Service.Interface;
 using GymManagementAPI.ViewModel.ClassVM;
 using FluentValidation;
+using GymManagementAPI.Extensions;
 
 namespace GymManagementAPI.Controllers
 {
     [Route("api/classes")]
     [ApiController]
-    public class ClassesController : ControllerBase
+    public class ClassController : ControllerBase
     {
         private readonly IClassService _classService;
-        private readonly IValidator<CreateClassVM> _createValidator;
-        private readonly IValidator<UpdateClassVM> _updateValidator;
+        private readonly IValidator<CreateClassVM> _createClassValidator;
+        private readonly IValidator<UpdateClassVM> _updateClassValidator;
 
-        public ClassesController(IClassService classService, IValidator<CreateClassVM> createValidator, IValidator<UpdateClassVM> updateValidator)
+        public ClassController(IClassService classService, IValidator<CreateClassVM> createClassValidator, IValidator<UpdateClassVM> updateClassValidator)
         {
             _classService = classService;
-            _createValidator = createValidator;
-            _updateValidator = updateValidator;
-        }
-        private IActionResult FormatValidationResponse(FluentValidation.Results.ValidationResult validationResult)
-        {
-            var errors = validationResult.Errors.Select(error => new
-            {
-                propertyName = error.PropertyName,
-                errorMessage = error.ErrorMessage
-            });
-
-            return BadRequest(errors);
+            _createClassValidator = createClassValidator;
+            _updateClassValidator = updateClassValidator;
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> GetAllClasses()
         {
-            var classes = _classService.GetAll();
+            var classes = await _classService.GetAllAsync();
             return Ok(classes);
         }
 
         [HttpGet("{id}")]
-        public IActionResult Get(int id)
+        public async Task<IActionResult> GetClassById(int id)
         {
-            var classEntity = _classService.GetById(id);
+            var classEntity = await _classService.GetByIdAsync(id);
             if (classEntity == null)
-                return NotFound("Lớp học không tồn tại");
-
+            {
+                return NotFound(new { message = "Lớp học không tồn tại." });
+            }
             return Ok(classEntity);
         }
 
         [HttpPost]
-        public IActionResult Post([FromBody] CreateClassVM model)
+        public async Task<IActionResult> CreateClass([FromBody] CreateClassVM model)
         {
-            var validationResult = _createValidator.Validate(model);
+            var validationResult = _createClassValidator.Validate(model);
+            var validationResponse = validationResult.ToValidationResponse();
             if (!validationResult.IsValid)
-                return FormatValidationResponse(validationResult);
+            {
+                return validationResponse;
+            }
 
-            _classService.Create(model);
-            return StatusCode(201, "Lớp học đã được tạo thành công");
+            var result = await _classService.CreateAsync(model);
+            if (result)
+            {
+                return Ok(new { message = "Lớp học được tạo thành công." });
+            }
+
+            return StatusCode(500, "Đã có lỗi xảy ra.");
         }
 
         [HttpPut("{id}")]
-        public IActionResult Put(int id, [FromBody] UpdateClassVM model)
+        public async Task<IActionResult> UpdateClass(int id, [FromBody] UpdateClassVM model)
         {
-            var validationResult = _updateValidator.Validate(model);
+            var validationResult = _updateClassValidator.Validate(model);
+            var validationResponse = validationResult.ToValidationResponse();
             if (!validationResult.IsValid)
-                return FormatValidationResponse(validationResult);
+            {
+                return validationResponse;
+            }
 
-            var updated = _classService.Update(id, model);
-            if (!updated)
-                return NotFound("Lớp học không tồn tại");
+            var result = await _classService.UpdateAsync(id, model);
+            if (result)
+            {
+                return Ok(new { message = "Lớp học đã được cập nhật thành công." });
+            }
 
-            return Ok("Cập nhật thành công");
+            return NotFound(new { message = "Lớp học không tồn tại." });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> DeleteClass(int id)
         {
-            var deleted = _classService.Delete(id);
-            if (!deleted)
-                return NotFound("Lớp học không tồn tại");
+            var result = await _classService.DeleteAsync(id);
+            if (result)
+            {
+                return NoContent();
+            }
 
-            return NoContent();
+            return NotFound(new { message = "Lớp học không tồn tại." });
         }
     }
 }

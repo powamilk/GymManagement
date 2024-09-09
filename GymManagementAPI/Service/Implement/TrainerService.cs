@@ -2,6 +2,7 @@
 using GymManagementAPI.Entities;
 using GymManagementAPI.Service.Interface;
 using GymManagementAPI.ViewModel.TrainerVM;
+using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementAPI.Service.Implement
 {
@@ -16,22 +17,26 @@ namespace GymManagementAPI.Service.Implement
             _mapper = mapper;
         }
 
-        public List<TrainerVM> GetAll()
+        public async Task<List<TrainerVM>> GetAllAsync()
         {
-            var trainers = _context.Trainers.ToList();
+            var trainersQuery = _context.Trainers.AsQueryable();
+            var trainers = await trainersQuery.ToListAsync();
             return _mapper.Map<List<TrainerVM>>(trainers);
         }
 
-        public TrainerVM GetById(int id)
+        public async Task<TrainerVM> GetByIdAsync(int id)
         {
-            var trainer = _context.Trainers.Find(id);
-            if (trainer == null) return null;
+            var trainer = await _context.Trainers.FindAsync(id);
+            if (trainer == null)
+            {
+                return null;
+            }
             return _mapper.Map<TrainerVM>(trainer);
         }
 
-        public bool Create(CreateTrainerVM model)
+        public async Task<bool> CreateAsync(CreateTrainerVM model)
         {
-            var trainer = new Trainer
+            var trainerEntity = new Trainer
             {
                 Name = model.Name,
                 Specialty = model.Specialty,
@@ -40,32 +45,33 @@ namespace GymManagementAPI.Service.Implement
                 Phone = model.Phone
             };
 
-            _context.Trainers.Add(trainer);
-            _context.SaveChanges();
+            _context.Trainers.Add(trainerEntity);
+            await _context.SaveChangesAsync();
             return true;
         }
 
-        public bool Update(int id, UpdateTrainerVM model)
+        public async Task<bool> UpdateAsync(int id, UpdateTrainerVM model)
         {
-            var trainer = _context.Trainers.Find(id);
-            if (trainer == null) return false;
+            var trainerEntity = await _context.Trainers.FindAsync(id);
+            if (trainerEntity == null) return false;
 
-            trainer.Name = model.Name;
-            trainer.Specialty = model.Specialty;
-            trainer.ExperienceYears = model.ExperienceYears;
-            trainer.Email = model.Email;
-            trainer.Phone = model.Phone;
+            trainerEntity.Name = model.Name;
+            trainerEntity.Specialty = model.Specialty;
+            trainerEntity.ExperienceYears = model.ExperienceYears;
+            trainerEntity.Email = model.Email;
+            trainerEntity.Phone = model.Phone;
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return true;
         }
 
-        public bool Delete(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            var trainer = _context.Trainers.Find(id);
-            if (trainer == null) return false;
-            _context.Trainers.Remove(trainer);
-            _context.SaveChanges();
+            var trainerEntity = await _context.Trainers.FindAsync(id);
+            if (trainerEntity == null) return false;
+
+            _context.Trainers.Remove(trainerEntity);
+            await _context.SaveChangesAsync();
             return true;
         }
     }

@@ -12,20 +12,9 @@ namespace GymManagementAPI.MapperProfile
         public AutoMapperProfile()
         {
             CreateMap<Member, MemberVM>();
-            CreateMap<Member, CreateMemberVM>();
-            CreateMap<Member, UpdateMemberVM>();
-
             CreateMap<Trainer, TrainerVM>();
-            CreateMap<Trainer, CreateTrainerVM>();
-            CreateMap<Trainer, UpdateTrainerVM>();
-
             CreateMap<Class, ClassVM>();
-            CreateMap<Class, CreateClassVM>();
-            CreateMap<Class, UpdateClassVM>();
-
             CreateMap<ClassRegistration, ClassRegistrationVM>();
-            CreateMap<ClassRegistration, CreateClassRegistrationVM>();
-            CreateMap<ClassRegistration, UpdateClassRegistrationVM>();
         }
     }
 }

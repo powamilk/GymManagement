@@ -4,10 +4,10 @@ namespace GymManagementAPI.Service.Interface
 {
     public interface IClassService
     {
-        List<ClassVM> GetAll();
-        ClassVM GetById(int id);
-        bool Create(CreateClassVM model);
-        bool Update(int id, UpdateClassVM model);
-        bool Delete(int id);
+        Task<List<ClassVM>> GetAllAsync();
+        Task<ClassVM> GetByIdAsync(int id);
+        Task<bool> CreateAsync(CreateClassVM model);
+        Task<bool> UpdateAsync(int id, UpdateClassVM model);
+        Task<bool> DeleteAsync(int id);
     }
 }

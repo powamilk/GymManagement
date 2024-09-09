@@ -1,4 +1,6 @@
 ﻿using FluentValidation;
+using GymManagementAPI.Extensions;
+using GymManagementAPI.Service.Implement;
 using GymManagementAPI.Service.Interface;
 using GymManagementAPI.ViewModel.ClassRegistrationVM;
 using Microsoft.AspNetCore.Http;
@@ -10,78 +12,83 @@ namespace GymManagementAPI.Controllers
     [ApiController]
     public class ClassRegistrationsController : ControllerBase
     {
-        private readonly IClassRegistrationService _registrationService;
-        private readonly IValidator<CreateClassRegistrationVM> _createValidator;
-        private readonly IValidator<UpdateClassRegistrationVM> _updateValidator;
+        private readonly IClassRegistrationService _classRegistrationService;
+        private readonly IValidator<CreateClassRegistrationVM> _createClassRegistrationValidator;
+        private readonly IValidator<UpdateClassRegistrationVM> _updateClassRegistrationValidator;
 
-        public ClassRegistrationsController(IClassRegistrationService registrationService, IValidator<CreateClassRegistrationVM> createValidator, IValidator<UpdateClassRegistrationVM> updateValidator)
+        public ClassRegistrationsController(IClassRegistrationService classRegistrationService, IValidator<CreateClassRegistrationVM> createClassRegistrationValidator, IValidator<UpdateClassRegistrationVM> updateClassRegistrationValidator)
         {
-            _registrationService = registrationService;
-            _createValidator = createValidator;
-            _updateValidator = updateValidator;
-        }
-
-        private IActionResult FormatValidationResponse(FluentValidation.Results.ValidationResult validationResult)
-        {
-            var errors = validationResult.Errors.Select(error => new
-            {
-                propertyName = error.PropertyName,
-                errorMessage = error.ErrorMessage
-            });
-
-            return BadRequest(errors);
+            _classRegistrationService = classRegistrationService;
+            _createClassRegistrationValidator = createClassRegistrationValidator;
+            _updateClassRegistrationValidator = updateClassRegistrationValidator;
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> GetAllRegistrations()
         {
-            var registrations = _registrationService.GetAll();
+            var registrations = await _classRegistrationService.GetAllAsync();
             return Ok(registrations);
         }
 
         [HttpGet("{id}")]
-        public IActionResult Get(int id)
+        public async Task<IActionResult> GetRegistrationById(int id)
         {
-            var registration = _registrationService.GetById(id);
+            var registration = await _classRegistrationService.GetByIdAsync(id);
             if (registration == null)
-                return NotFound("Đăng ký không tồn tại");
-
+            {
+                return NotFound(new { message = "Đăng ký không tồn tại." });
+            }
             return Ok(registration);
         }
 
         [HttpPost]
-        public IActionResult Post([FromBody] CreateClassRegistrationVM model)
+        public async Task<IActionResult> CreateRegistration([FromBody] CreateClassRegistrationVM model)
         {
-            var validationResult = _createValidator.Validate(model);
+            var validationResult = _createClassRegistrationValidator.Validate(model);
+            var validationResponse = validationResult.ToValidationResponse();
             if (!validationResult.IsValid)
-                return FormatValidationResponse(validationResult);
+            {
+                return validationResponse;
+            }
 
-            _registrationService.Create(model);
-            return StatusCode(201, "Đăng ký lớp học thành công");
+            var result = await _classRegistrationService.CreateAsync(model);
+            if (result)
+            {
+                return Ok(new { message = "Đăng ký lớp học thành công." });
+            }
+
+            return StatusCode(500, "Đã có lỗi xảy ra.");
         }
 
         [HttpPut("{id}")]
-        public IActionResult Put(int id, [FromBody] UpdateClassRegistrationVM model)
+        public async Task<IActionResult> UpdateRegistration(int id, [FromBody] UpdateClassRegistrationVM model)
         {
-            var validationResult = _updateValidator.Validate(model);
+            var validationResult = _updateClassRegistrationValidator.Validate(model);
+            var validationResponse = validationResult.ToValidationResponse();
             if (!validationResult.IsValid)
-                return FormatValidationResponse(validationResult);
+            {
+                return validationResponse;
+            }
 
-            var updated = _registrationService.Update(id, model);
-            if (!updated)
-                return NotFound("Đăng ký không tồn tại");
+            var result = await _classRegistrationService.UpdateAsync(id, model);
+            if (result)
+            {
+                return Ok(new { message = "Đăng ký lớp học đã được cập nhật thành công." });
+            }
 
-            return Ok("Cập nhật đăng ký thành công");
+            return NotFound(new { message = "Đăng ký không tồn tại." });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> DeleteRegistration(int id)
         {
-            var deleted = _registrationService.Delete(id);
-            if (!deleted)
-                return NotFound("Đăng ký không tồn tại");
+            var result = await _classRegistrationService.DeleteAsync(id);
+            if (result)
+            {
+                return NoContent();
+            }
 
-            return NoContent();
+            return NotFound(new { message = "Đăng ký không tồn tại." });
         }
     }
 }

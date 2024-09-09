@@ -2,6 +2,7 @@
 using GymManagementAPI.Entities;
 using GymManagementAPI.Service.Interface;
 using GymManagementAPI.ViewModel.ClassRegistrationVM;
+using Microsoft.EntityFrameworkCore;
 
 namespace GymManagementAPI.Service.Implement
 {
@@ -16,20 +17,24 @@ namespace GymManagementAPI.Service.Implement
             _mapper = mapper;
         }
 
-        public List<ClassRegistrationVM> GetAll()
+        public async Task<List<ClassRegistrationVM>> GetAllAsync()
         {
-            var registrations = _context.ClassRegistrations.ToList();
+            var registrationsQuery = _context.ClassRegistrations.AsQueryable();
+            var registrations = await registrationsQuery.ToListAsync();
             return _mapper.Map<List<ClassRegistrationVM>>(registrations);
         }
 
-        public ClassRegistrationVM GetById(int id)
+        public async Task<ClassRegistrationVM> GetByIdAsync(int id)
         {
-            var registration = _context.ClassRegistrations.Find(id);
-            if (registration == null) return null;
+            var registration = await _context.ClassRegistrations.FindAsync(id);
+            if (registration == null)
+            {
+                return null;
+            }
             return _mapper.Map<ClassRegistrationVM>(registration);
         }
 
-        public bool Create(CreateClassRegistrationVM model)
+        public async Task<bool> CreateAsync(CreateClassRegistrationVM model)
         {
             var registration = new ClassRegistration
             {
@@ -38,28 +43,29 @@ namespace GymManagementAPI.Service.Implement
             };
 
             _context.ClassRegistrations.Add(registration);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return true;
         }
 
-        public bool Update(int id, UpdateClassRegistrationVM model)
+        public async Task<bool> UpdateAsync(int id, UpdateClassRegistrationVM model)
         {
-            var registration = _context.ClassRegistrations.Find(id);
+            var registration = await _context.ClassRegistrations.FindAsync(id);
             if (registration == null) return false;
+
             registration.MemberId = model.MemberId;
             registration.ClassId = model.ClassId;
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return true;
         }
 
-        public bool Delete(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            var registration = _context.ClassRegistrations.Find(id);
+            var registration = await _context.ClassRegistrations.FindAsync(id);
             if (registration == null) return false;
 
             _context.ClassRegistrations.Remove(registration);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return true;
         }
     }

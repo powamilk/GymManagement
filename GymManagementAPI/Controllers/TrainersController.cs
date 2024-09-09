@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using GymManagementAPI.Extensions;
 using GymManagementAPI.Service.Interface;
 using GymManagementAPI.ViewModel.TrainerVM;
 using Microsoft.AspNetCore.Http;
@@ -8,80 +9,85 @@ namespace GymManagementAPI.Controllers
 {
     [Route("api/trainers")]
     [ApiController]
-    public class TrainersController : ControllerBase
+    public class TrainerController : ControllerBase
     {
         private readonly ITrainerService _trainerService;
-        private readonly IValidator<CreateTrainerVM> _createValidator;
-        private readonly IValidator<UpdateTrainerVM> _updateValidator;
+        private readonly IValidator<CreateTrainerVM> _createTrainerValidator;
+        private readonly IValidator<UpdateTrainerVM> _updateTrainerValidator;
 
-        public TrainersController(ITrainerService trainerService, IValidator<CreateTrainerVM> createValidator, IValidator<UpdateTrainerVM> updateValidator)
+        public TrainerController(ITrainerService trainerService, IValidator<CreateTrainerVM> createTrainerValidator, IValidator<UpdateTrainerVM> updateTrainerValidator)
         {
             _trainerService = trainerService;
-            _createValidator = createValidator;
-            _updateValidator = updateValidator;
-        }
-
-        private IActionResult FormatValidationResponse(FluentValidation.Results.ValidationResult validationResult)
-        {
-            var errors = validationResult.Errors.Select(error => new
-            {
-                propertyName = error.PropertyName,
-                errorMessage = error.ErrorMessage
-            });
-
-            return BadRequest(errors);
+            _createTrainerValidator = createTrainerValidator;
+            _updateTrainerValidator = updateTrainerValidator;
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> GetAllTrainers()
         {
-            var trainers = _trainerService.GetAll();
+            var trainers = await _trainerService.GetAllAsync();
             return Ok(trainers);
         }
 
         [HttpGet("{id}")]
-        public IActionResult Get(int id)
+        public async Task<IActionResult> GetTrainerById(int id)
         {
-            var trainer = _trainerService.GetById(id);
+            var trainer = await _trainerService.GetByIdAsync(id);
             if (trainer == null)
-                return NotFound("Huấn luyện viên không tồn tại");
-
+            {
+                return NotFound(new { message = "Huấn luyện viên không tồn tại." });
+            }
             return Ok(trainer);
         }
 
         [HttpPost]
-        public IActionResult Post([FromBody] CreateTrainerVM model)
+        public async Task<IActionResult> CreateTrainer([FromBody] CreateTrainerVM model)
         {
-            var validationResult = _createValidator.Validate(model);
+            var validationResult = _createTrainerValidator.Validate(model);
+            var validationResponse = validationResult.ToValidationResponse();
             if (!validationResult.IsValid)
-                return FormatValidationResponse(validationResult);
+            {
+                return validationResponse;
+            }
 
-            _trainerService.Create(model);
-            return StatusCode(201, "Huấn luyện viên đã được tạo thành công");
+            var result = await _trainerService.CreateAsync(model);
+            if (result)
+            {
+                return Ok(new { message = "Huấn luyện viên được tạo thành công." });
+            }
+
+            return StatusCode(500, "Đã có lỗi xảy ra.");
         }
 
         [HttpPut("{id}")]
-        public IActionResult Put(int id, [FromBody] UpdateTrainerVM model)
+        public async Task<IActionResult> UpdateTrainer(int id, [FromBody] UpdateTrainerVM model)
         {
-            var validationResult = _updateValidator.Validate(model);
+            var validationResult = _updateTrainerValidator.Validate(model);
+            var validationResponse = validationResult.ToValidationResponse();
             if (!validationResult.IsValid)
-                return FormatValidationResponse(validationResult);
+            {
+                return validationResponse;
+            }
 
-            var updated = _trainerService.Update(id, model);
-            if (!updated)
-                return NotFound("Huấn luyện viên không tồn tại");
+            var result = await _trainerService.UpdateAsync(id, model);
+            if (result)
+            {
+                return Ok(new { message = "Huấn luyện viên đã được cập nhật thành công." });
+            }
 
-            return Ok("Cập nhật thành công");
+            return NotFound(new { message = "Huấn luyện viên không tồn tại." });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> DeleteTrainer(int id)
         {
-            var deleted = _trainerService.Delete(id);
-            if (!deleted)
-                return NotFound("Huấn luyện viên không tồn tại");
+            var result = await _trainerService.DeleteAsync(id);
+            if (result)
+            {
+                return NoContent();
+            }
 
-            return NoContent();
+            return NotFound(new { message = "Huấn luyện viên không tồn tại." });
         }
     }
 }
