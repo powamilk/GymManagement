@@ -31,7 +31,12 @@ namespace GymManagementAPI.Service.Implement
 
         public bool Create(CreateClassRegistrationVM model)
         {
-            var registration = _mapper.Map<ClassRegistration>(model);
+            var registration = new ClassRegistration
+            {
+                MemberId = model.MemberId,
+                ClassId = model.ClassId
+            };
+
             _context.ClassRegistrations.Add(registration);
             _context.SaveChanges();
             return true;
@@ -41,7 +46,9 @@ namespace GymManagementAPI.Service.Implement
         {
             var registration = _context.ClassRegistrations.Find(id);
             if (registration == null) return false;
-            _mapper.Map(model, registration);
+            registration.MemberId = model.MemberId;
+            registration.ClassId = model.ClassId;
+
             _context.SaveChanges();
             return true;
         }
@@ -50,6 +57,7 @@ namespace GymManagementAPI.Service.Implement
         {
             var registration = _context.ClassRegistrations.Find(id);
             if (registration == null) return false;
+
             _context.ClassRegistrations.Remove(registration);
             _context.SaveChanges();
             return true;

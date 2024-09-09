@@ -31,7 +31,15 @@ namespace GymManagementAPI.Service.Implement
 
         public bool Create(CreateClassVM model)
         {
-            var classEntity = _mapper.Map<Class>(model);
+            var classEntity = new Class
+            {
+                Name = model.Name,
+                TrainerId = model.TrainerId,
+                Schedule = model.Schedule,
+                MaxMembers = model.MaxMembers,
+                CurrentMembers = 0
+            };
+
             _context.Classes.Add(classEntity);
             _context.SaveChanges();
             return true;
@@ -41,7 +49,11 @@ namespace GymManagementAPI.Service.Implement
         {
             var classEntity = _context.Classes.Find(id);
             if (classEntity == null) return false;
-            _mapper.Map(model, classEntity);
+            classEntity.Name = model.Name;
+            classEntity.TrainerId = model.TrainerId;
+            classEntity.Schedule = model.Schedule;
+            classEntity.MaxMembers = model.MaxMembers;
+
             _context.SaveChanges();
             return true;
         }
@@ -50,6 +62,7 @@ namespace GymManagementAPI.Service.Implement
         {
             var classEntity = _context.Classes.Find(id);
             if (classEntity == null) return false;
+
             _context.Classes.Remove(classEntity);
             _context.SaveChanges();
             return true;

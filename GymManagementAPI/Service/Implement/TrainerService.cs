@@ -31,7 +31,15 @@ namespace GymManagementAPI.Service.Implement
 
         public bool Create(CreateTrainerVM model)
         {
-            var trainer = _mapper.Map<Trainer>(model);
+            var trainer = new Trainer
+            {
+                Name = model.Name,
+                Specialty = model.Specialty,
+                ExperienceYears = model.ExperienceYears,
+                Email = model.Email,
+                Phone = model.Phone
+            };
+
             _context.Trainers.Add(trainer);
             _context.SaveChanges();
             return true;
@@ -41,7 +49,13 @@ namespace GymManagementAPI.Service.Implement
         {
             var trainer = _context.Trainers.Find(id);
             if (trainer == null) return false;
-            _mapper.Map(model, trainer);
+
+            trainer.Name = model.Name;
+            trainer.Specialty = model.Specialty;
+            trainer.ExperienceYears = model.ExperienceYears;
+            trainer.Email = model.Email;
+            trainer.Phone = model.Phone;
+
             _context.SaveChanges();
             return true;
         }
